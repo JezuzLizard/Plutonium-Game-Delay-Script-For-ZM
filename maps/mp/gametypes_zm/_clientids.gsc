@@ -1,6 +1,7 @@
 #include maps\mp\_utility;
 #include common_scripts\utility;
 #include maps\mp\zombies\_zm_utility;
+#include maps\mp\gametypes_zm\_hud;
 #include maps\mp\gametypes_zm\_hud_util;
 #include maps\mp\gametypes_zm\_hud_message;
 #include maps\mp\zombies\_zm;
@@ -13,7 +14,7 @@ init()
 
 initialize_game_delay_vars()
 {
-	level.wait_time = getDvarIntDefault( "zombies_first_round_delay", 10 ); //change this to adjust the start time once the player quota is met
+	level.wait_time = getDvarIntDefault( "zombies_game_start_timer", 10 ); //change this to adjust the start time once the player quota is met
 	level.player_quota = getDvarIntDefault( "zombies_minplayers", 2 ); //number of players required before the game starts
 	if ( level.player_quota > 1 )
 	{
@@ -47,11 +48,6 @@ game_delay()
 		thread countdown_timer();
 		wait level.wait_time;
 	}
-	players = get_players();
-	foreach ( player in players )
-	{
-		player playlocalsound( "zmb_perks_packa_ready" );
-	}
 	level notify( "game_delay_done" );
     flag_set( "start_zombie_round_logic" );
 }
@@ -59,17 +55,17 @@ game_delay()
 wait_message()
 {   
 	level endon( "end_game" );
-   	Waiting = create_simple_hud();
-   	Waiting.horzAlign = "center";
-   	Waiting.vertAlign = "middle";
-   	Waiting.alignX = "center";
-   	Waiting.alignY = "middle";
-   	Waiting.y = 0;
-   	Waiting.x = -1;
-   	Waiting.foreground = 1;
-   	Waiting.fontscale = 3.0;
-   	Waiting.alpha = 1;
-   	Waiting.color = ( 1.000, 1.000, 1.000 );
+   	waiting = create_simple_hud();
+   	waiting.horzAlign = "center";
+   	waiting.vertAlign = "middle";
+   	waiting.alignX = "center";
+   	waiting.alignY = "middle";
+   	waiting.y = 0;
+   	waiting.x = -1;
+   	waiting.foreground = 1;
+   	waiting.fontscale = 3.0;
+   	waiting.alpha = 1;
+   	waiting.color = ( 1.000, 1.000, 1.000 );
 	waiting.hidewheninmenu = 1;
 	
 	if ( level.player_quota == 1 )
@@ -80,51 +76,67 @@ wait_message()
 	{
 		player_text = "players";
 	}
-	Waiting SetText( "Waiting for " + level.player_quota + " more " + player_text );
+	waiting setText( "Waiting for " + level.player_quota + " more " + player_text );
 	level waittill( "player_quota_reached" );
-	Waiting destroy();
+	waiting destroy();
 }
 
 countdown_timer()
 {   
 	level endon( "end_game" );
-	Remaining = create_simple_hud();
-  	Remaining.horzAlign = "center";
-  	Remaining.vertAlign = "middle";
-   	Remaining.alignX = "center";
-   	Remaining.alignY = "middle";
-   	Remaining.y = 20;
-   	Remaining.x = 0;
-   	Remaining.foreground = 1;
-   	Remaining.fontscale = 2.0;
-   	Remaining.alpha = 1;
-   	Remaining.color = ( 0.98, 0.549, 0 );
-	Remaining.hidewheninmenu = 1;
+	remaining = create_simple_hud();
+  	remaining.horzAlign = "center";
+  	remaining.vertAlign = "middle";
+   	remaining.alignX = "center";
+   	remaining.alignY = "middle";
+   	remaining.y = 20;
+   	remaining.x = 0;
+   	remaining.foreground = 1;
+   	remaining.fontscale = 2.0;
+   	remaining.alpha = 1;
+   	remaining.color = ( 0.98, 0.549, 0 );
+	remaining.hidewheninmenu = 1;
+	remaining maps/mp/gametypes_zm/_hud::fontpulseinit();
 
-   	Countdown = create_simple_hud();
-   	Countdown.horzAlign = "center"; 
-   	Countdown.vertAlign = "middle";
-   	Countdown.alignX = "center";
-   	Countdown.alignY = "middle";
-   	Countdown.y = -20;
-   	Countdown.x = 0;
-   	Countdown.foreground = 1;
-   	Countdown.fontscale = 2.0;
-   	Countdown.alpha = 1;
-   	Countdown.color = ( 1.000, 1.000, 1.000 );
-	Countdown.hidewheninmenu = 1;
-   	Countdown SetText( "Match begins in" );
-   	
-   	timer = level.wait_time;
-	for ( timer = level.wait_time; timer >= 0; timer-- )
+   	countdown = create_simple_hud();
+   	countdown.horzAlign = "center"; 
+   	countdown.vertAlign = "middle";
+   	countdown.alignX = "center";
+   	countdown.alignY = "middle";
+   	countdown.y = -20;
+   	countdown.x = 0;
+   	countdown.foreground = 1;
+   	countdown.fontscale = 2.0;
+   	countdown.alpha = 1;
+   	countdown.color = ( 1.000, 1.000, 1.000 );
+	countdown.hidewheninmenu = 1;
+   	countdown setText( "Match Begins In" );
+	timer = level.wait_time;
+	while ( 1 )
 	{
-		Remaining SetValue( timer ); 
+		Remaining setValue( timer ); 
 		wait 1;
-		if ( timer <= 0 )
+		timer--;
+		if ( timer <= 5 )
 		{
-			Countdown destroy();
-			Remaining destroy();
+			countdown_pulse( Remaining, timer );
 			break;
 		}
+	}
+	Countdown destroy();
+	Remaining destroy();
+}
+
+countdown_pulse( hud_elem, duration )
+{
+	waittillframeend;
+	while ( duration > 0 && !level.gameended )
+	{
+		hud_elem thread maps/mp/gametypes_zm/_hud::fontpulse( level );
+		wait ( hud_elem.inframes * 0.05 );
+		hud_elem setvalue( duration );
+		duration--;
+
+		wait ( 1 - ( hud_elem.inframes * 0.05 ) );
 	}
 }
