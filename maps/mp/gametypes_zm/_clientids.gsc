@@ -15,11 +15,11 @@ init()
 initialize_game_delay_vars()
 {
 	level thread on_player_connect();
-	level.gdm_wait_time = getDvarIntDefault( "zombies_game_delay_timer", 10 ); //change this to adjust the start time once the player quota is met
-	level.gdm_player_quota = getDvarIntDefault( "zombies_minplayers", 2 ); //number of players required before the game starts
+	level.gdm_wait_time = getDvarInt( "zombies_game_delay_timer" ); //change this to adjust the start time once the player quota is met
+	level.gdm_player_quota = getDvarInt( "zombies_minplayers" ); //number of players required before the game starts
 	level.gdm_player_num_required = level.gdm_player_quota;
 	level.round_prestart_func =::round_prestart_func; //delays the rounds from starting
-	SetDvar( "scr_zm_enable_bots", 1 ); //this is required for the mod to work
+	setDvar( "scr_zm_enable_bots", 1 ); //this is required for the mod to work
 	thread game_delay(); //this overrides the typical start time logic
 	thread dvar_watcher();
 	thread destroy_hud_on_game_end();
@@ -58,7 +58,7 @@ game_delay()
 		thread wait_message_text_updater();
 		while ( players.size < level.gdm_player_quota )
 		{
-			level waittill_either( "gdm_update_wait_message", "gdm_zombies_minplayers_updated" );
+			level waittill( "gdm_update_wait_message" );
 			players = get_players();
 		}
 		level notify( "gdm_player_quota_reached" );
@@ -110,7 +110,7 @@ wait_message_text_updater()
 		}
 		level.gdm_wait_message = create_wait_message_hud();
 		level.gdm_wait_message setText( "Waiting For " + level.gdm_player_num_required + " More " + player_text );
-		level waittill_either( "gdm_update_wait_message", "gdm_zombies_minplayers_updated" );
+		level waittill( "gdm_update_wait_message" );
 		if ( isDefined( level.gdm_wait_message ) )
 		{
 			level.gdm_wait_message destroy();
@@ -192,7 +192,6 @@ dvar_watcher()
 	level endon( "gdm_game_delay_done" );
 	old_zombies_minplayers = getDvarInt( "zombies_minplayers" );
 	new_zombies_minplayers = getDvarInt( "zombies_minplayers" );
-	num_required = 0;
 	while ( 1 )
 	{
 		new_zombies_minplayers = getDvarInt( "zombies_minplayers" );
@@ -202,7 +201,7 @@ dvar_watcher()
 			level.gdm_player_quota = new_zombies_minplayers;
 			players = get_players();
 			level.gdm_player_num_required = ( level.gdm_player_quota - players.size );
-			level notify( "gdm_zombies_minplayers_updated" );
+			level notify( "gdm_update_wait_message" );
 		}
 		wait 0.05;
 	}
